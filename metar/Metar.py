@@ -171,6 +171,14 @@ TEMP_24HR_RE = re.compile(r"""^4(?P<smaxt>0|1)
                                 (?P<smint>0|1)
                                 (?P<mint>\d\d\d)\s+""",
                                 re.VERBOSE)
+CLOUD_COVERAGE_RE = re.compile(r"""^(?P<layers>((CI|CS|CC|AS|AC|CU|TCU|NS|
+                                                 ST|SF|SC|ACC|CUFRA|CB)
+                                     \d{1})+)\s+""",
+                               re.VERBOSE)
+CLOUD_LAYER_RE = re.compile(r"""(?P<type>CI|CS|CC|AS|AC|CU|TCU|NS|
+                                         ST|SF|SC|ACC|CUFRA|CB)
+                                (?P<oktas>\d{1})""",
+                            re.VERBOSE)
 UNPARSED_RE = re.compile(r"(?P<group>\S+)\s+")
 
 LIGHTNING_RE = re.compile(r"""^((?P<freq>OCNL|FRQ|CONS)\s+)?
@@ -350,6 +358,7 @@ class Metar(object):
       self.precip_3hr = None             # precipitation over the last 3 hours
       self.precip_6hr = None             # precipitation over the last 6 hours
       self.precip_24hr = None            # precipitation over the last 24 hours
+      self.cloud_coverage = []           # cloud coverage (list of tuples)
       self._trend = False                # trend groups present (bool)
       self._trend_groups = []            # trend forecast groups
       self._remarks = []                 # remarks (list of strings)
@@ -887,6 +896,14 @@ class Metar(object):
           self._remarks.append("Automated station")
       elif d['type'] == "2":
           self._remarks.append("Automated station (type 2)")
+
+  def _handleCloudCoverageRemark( self, d ):
+      """
+      Parse a cloud coverage remark group.
+      """
+      self.cloud_coverage.extend(
+          (type, int(oktas))
+          for type, oktas in CLOUD_LAYER_RE.findall(d['layers']))
       
   def _unparsedRemark( self, d ):
       """
@@ -936,6 +953,7 @@ class Metar(object):
                       (PRESS_3HR_RE,    _handlePress3hrRemark),
                       (TEMP_6HR_RE,     _handleTemp6hrRemark),
                       (TEMP_24HR_RE,    _handleTemp24hrRemark),
+                      (CLOUD_COVERAGE_RE, _handleCloudCoverageRemark),
                       (UNPARSED_RE,     _unparsedRemark) ]
   
   ## functions that return text representations of conditions for output
