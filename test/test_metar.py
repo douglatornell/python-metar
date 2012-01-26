@@ -402,6 +402,32 @@ class MetarTest(unittest.TestCase):
     self.assertEqual( report('TEMPO 0306 RMK 402500072').trend(), 'TEMPO 0306' )
     self.assertEqual( report('TEMPO 0306 RMK 402500072').max_temp_24hr.value(), 25.0 )
 
+  def test_400_parseCloudCoverageRemark(self):
+    """Check parsing of Environment Canada cloud coverage remark."""
+
+    def report(remarks=""):
+      """(Macro)
+      Return Metar object for a report containing the given remarks.
+      """
+      sample_metar = "CYVR 261900Z 28014KT 20SM FEW045 FEW073 06/01 A3029 RMK"
+      return Metar.Metar(sample_metar+' '+remarks)
+
+    self.assertEqual( report().cloud_coverage, [] )
+    self.assertEqual( report().remarks(), "" )
+
+    self.assertEqual( report('SC1').cloud_coverage, [('SC', 1)] )
+    self.assertEqual( report('SC1').remarks(), "" )
+
+    self.assertEqual( report('SC1 SLP256').cloud_coverage, [('SC', 1)] )
+    self.assertEqual( report('SC1 SLP256').press_sea_level.value(), 1025.6 )
+    self.assertEqual( report('SC1 SLP256').remarks(), "" )
+
+    self.assertEqual( report('SC1AC1 CVCTV CLD ASOCTD SLP256').cloud_coverage, [('SC', 1), ('AC', 1)] )
+    self.assertEqual( report('SC1 SLP256').remarks(), "" )
+    self.assertEqual( report('SC1AC1 CVCTV CLD ASOCTD SLP256')._unparsed_remarks, "CVCTV CLD ASOCTD".split() )
+
+    self.assertEqual( report('CU1SC1AC2AC2CC1').cloud_coverage, [('CU', 1), ('SC', 1), ('AC', 2), ('AC', 2), ('CC', 1)] )
+
 if __name__=='__main__':
   unittest.main( )
 
